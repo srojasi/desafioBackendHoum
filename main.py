@@ -1,5 +1,6 @@
 # Por Santiago Rojas
 import requests
+import sys
 
 def main():
     print("Desafio Backend Houm")
@@ -8,8 +9,9 @@ def main():
     print("Respuesta 2.")
     print(pregunta2())
     print("Respuesta 3.")
+    print(pregunta3())
 
-def pregunta1() -> int:
+def pregunta1():
     """
     Funcion para responder a la pregunta 1 del desafio backend de Houm
 
@@ -42,7 +44,7 @@ def pregunta1() -> int:
     
     return cnt
 
-def pregunta2() -> int:
+def pregunta2():
     """
     Funcion para responder a la pregunta 2 del desafio backend de Houm.
 
@@ -75,11 +77,37 @@ def pregunta2() -> int:
     #Se retorna el largo del arreglo, un numero
     return len(arr)
 
+def pregunta3():
+    """
+    Funcion para responder a la pregunta 3 del desafio backend de Houm.
+
+    Para obtener el maximo y el minimo, se iterara una sola vez por el listado pokemones
+    ya filtrados por generacion, reduciendo la cantidad de consultas a la API.
+    Se puede obtener la id del pokemon desde la url de este.
+    """
+    arr = [0, sys.maxsize]
+    responseFighting = requests.get("https://pokeapi.co/api/v2/type/fighting")
+    if not responseFighting:
+        print('Request fallido')
+
+    for pokemon in responseFighting.json()["pokemon"]:
+        if int(get_id_from_URL(pokemon["pokemon"]["url"])) <= 151:
+            response = requests.get(pokemon["pokemon"]["url"])
+            if response:
+                peso = response.json()["weight"]
+                if arr[0] < peso:
+                    arr[0] = peso
+                if arr[1] > peso:
+                    arr[1] = peso
+            else:
+                print('Request fallido')
+
+    return arr
 
 #Funciones Auxiliares
-#def checkResponse(response)
-
-
+def get_id_from_URL(url):
+    arr = url.split("/")
+    return arr[-2]
 
 main()
 
