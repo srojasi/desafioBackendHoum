@@ -1,13 +1,17 @@
 # Por Santiago Rojas
 import requests
 import sys
+import aiohttp
+import asyncio
 
 def main():
     print("Desafio Backend Houm")
-    print("Respuesta 1.")
-    print(pregunta1())
-    #print("Respuesta 2.")
+    #print("Respuesta 1.")
+    #print(pregunta1())
+    #print("Respuesta 2. Version Secuencial")
     #print(pregunta2())
+    print("Respuesta 2. Version Asincrona")
+    print(pregunta2_async())
     #print("Respuesta 3.")
     #print(pregunta3())
 
@@ -39,36 +43,82 @@ def pregunta1():
 
 def pregunta2():
     """
-    Funcion para responder a la pregunta 2 del desafio backend de Houm.
+    Answer to question 2 of Houm Challenge, secuential version.
 
-    Se realizan multiples consultas a la API, una para obtener los egg_groups de raichu y 
-    una consulta por cada egg_group obtenido anteriormente.
+    Multiple queries to the API are made to obtain the result. First one to get 
+    the egg_groups of Raichu, then one for each egg_group. 
 
-    Se retorna el el largo del arreglo que contiene todos los nombres de los pokemones que
-    pueden procrear con raichu, el arreglo se crea para asegurarse que no hayan duplicados
-    (si no, se podria hacer un contador nomas)
+    Using the data structure set and returning its length, we make sure there are
+    no duplicates.
     """
-    #Obtener egg_groups de raichu
-    responseRaichu = requests.get("https://pokeapi.co/api/v2/pokemon-species/raichu/")
-    if not responseRaichu:
-        print('Request fallido')
+    try:
+        arr = set()
 
-    
-    #Con los egg_groups, obtenemos las especies
-    arr=[] #Arreglo que va contener todas las especies de pokemon buscadas
-    for egg_group in responseRaichu.json()["egg_groups"]: #Se itera por los egg_groups
-        response = requests.get(egg_group["url"])
-        if response:
+        #get raichu egg_groups and check response
+        response_raichu = requests.get("https://pokeapi.co/api/v2/pokemon-species/raichu/")
+        response_raichu.raise_for_status()
+
+        #loop through the egg_groups
+        for egg_group in response_raichu.json()["egg_groups"]:
+
+            #get species in the egg_group and check response
+            response = requests.get(egg_group["url"])
+            response.raise_for_status()
+
+            #loop through each species of the egg_group
             for pokemon_specie in response.json()["pokemon_species"]:
-                #Revision de duplicados
-                if not pokemon_specie["name"] in arr:
-                    arr.append(pokemon_specie["name"])           
-        else:
-            print('Request fallido')
+                arr.add(pokemon_specie["name"])
+    except Exception:
+        print("Request fallido")
+    finally:
+        return len(arr)
 
+def pregunta2_async():
+    """
+    Answer to question 2 of Houm Challenge, asynchronous version.
 
-    #Se retorna el largo del arreglo, un numero
-    return len(arr)
+    Multiple queries to the API are made to obtain the result. First one to get 
+    the egg_groups of Raichu, then one for each egg_group. The latter are done 
+    asynchronically for better performance.
+
+    Using the data structure set and returning its length, we make sure there are
+    no duplicates.
+    """
+    try:
+        arr = set()
+
+        #get raichu egg_groups and check response
+        response_raichu = requests.get("https://pokeapi.co/api/v2/pokemon-species/raichu/")
+        response_raichu.raise_for_status()
+
+        async def get_species_from_egg_group(session, url):
+            async with session.get(url) as response:
+                wait_response = await response.json()
+                return wait_response["pokemon_species"]
+            
+        async def get_all_species(egg_groups):
+            async with aiohttp.ClientSession() as session:
+                tasks = []
+                for egg_group in egg_groups:
+                    async_response = get_species_from_egg_group(session, egg_group["url"])
+                    tasks.append(async_response)
+                
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+                return responses
+        
+        async_get_response = get_all_species(response_raichu.json()["egg_groups"])
+        all_species_by_egg_group = asyncio.run(async_get_response)
+
+        #responses are bundled in a matrix, each row is a egg_group species
+        for egg_group_species in all_species_by_egg_group:
+            for pokemon in egg_group_species:
+                arr.add(pokemon["name"])
+
+    except Exception:
+        print("Request fallido")
+    finally:
+        return len(arr)
+
 
 def pregunta3():
     """
@@ -84,7 +134,7 @@ def pregunta3():
         print('Request fallido')
 
     for pokemon in responseFighting.json()["pokemon"]:
-        if int(get_id_from_URL(pokemon["pokemon"]["url"])) <= 151:
+        if get_id_from_URL(pokemon["pokemon"]["url"]) <= 151:
             response = requests.get(pokemon["pokemon"]["url"])
             if response:
                 peso = response.json()["weight"]
@@ -100,7 +150,7 @@ def pregunta3():
 #Funciones Auxiliares
 def get_id_from_URL(url):
     arr = url.split("/")
-    return arr[-2]
+    return int(arr[-2])
 
 main()
 
