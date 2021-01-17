@@ -6,43 +6,36 @@ def main():
     print("Desafio Backend Houm")
     print("Respuesta 1.")
     print(pregunta1())
-    print("Respuesta 2.")
-    print(pregunta2())
-    print("Respuesta 3.")
-    print(pregunta3())
+    #print("Respuesta 2.")
+    #print(pregunta2())
+    #print("Respuesta 3.")
+    #print(pregunta3())
 
 def pregunta1():
     """
-    Funcion para responder a la pregunta 1 del desafio backend de Houm
+    Answer to question 1 of Houm Challenge
 
-    Se retorna la cantidad de pokemones con el substring "at" y una "a" adicional
-    en su nombre. Si el nombre tiene más de una "a" adicional, no se contara.
-
-    (Se utilizo contains y replace para resolver la pregunta, tambien se puede
-    obtener el mismo resultado utilizando expresiones regulares)
+    Returns the amount of pokemons with the substring "at" and an aditional "a"
+    en its name. If the name has more than one aditional "a", the name will not
+    be considered.
     """
-    cnt = 0
-    response = requests.get("https://pokeapi.co/api/v2/pokemon?limit=1118")
+    try:
+        cnt = 0
+        #get all pokemons names from api
+        response = requests.get("https://pokeapi.co/api/v2/pokemon?limit=1118")
 
-    if response:
-        #se itera por cada uno de los nombres de los pokemones
+        #check for correct response
+        response.raise_for_status()
+
+        #loop through each pokemon name, and check the conditions
         for pokemon in response.json()["results"]:
+            if "at" in pokemon["name"] and pokemon["name"].count("a") == 2:
+                cnt += 1
+    except Exception:
+        print("Request fallido")
+    finally:
+        return cnt
 
-            if pokemon["name"].__contains__("at"):
-                #Se elimina la primera aparicion de "at" en el nombre
-                name_sin_at = pokemon["name"].replace("at","",1)
-
-                if name_sin_at.__contains__("a"):
-                    #Se elimina la primera aparicion de "a" en el nombre sin "at"
-                    name_clean = name_sin_at.replace("a","",1)
-
-                    if not name_clean.__contains__("a"):
-                        #Si el nombre no contiene ninguna "a" adicional, se cuenta
-                        cnt+=1
-    else:
-        print('Request fallido')
-    
-    return cnt
 
 def pregunta2():
     """
